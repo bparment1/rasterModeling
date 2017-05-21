@@ -373,8 +373,16 @@ data_metrics.head()
 ################ APPLY TO RASTER TO PREDICT
 
 
-out_filename = "results4.tif"
+out_filename = "results8.tif"
 rast_in = rasterio.open(os.path.join(in_dir,rast_in))
+rast_in = (os.path.join(in_dir,infile_lst_month1))
+
+
+#debugusing pdb
+#import pdb
+#pdb.runcall(rasterPredict,regr,rast_in,out_filename,out_dir)
+
+test = rasterPredict(regr,rast_in,out_filename,out_dir)
 
 
 def rasterPredict(mod,rast_in,out_filename=None,out_dir=None):
@@ -386,40 +394,52 @@ def rasterPredict(mod,rast_in,out_filename=None,out_dir=None):
     src_RP1 = rasterio.open(rast_in)
     #src_RP2 = rasterio.open(os.path.join(in_dir,infile_lst_month7))
 
-    ## Check if file exists first
+    ## Check if file exists first, still a problem here
     exists = os.path.isfile(out_filename)
     if exists:
-        prin("File already exists")
+        print("File already exists, removing file")
+        os.remove(out_filename)
+        
+        out_profile = src_RP1.profile.copy()
+        dst = rasterio.open(out_filename, 
+                        'w', 
+                        **out_profile)
         
     else:
         print("creating file")
         out_profile = src_RP1.profile.copy()
-        dst = rasterio.open(r'result.tif', 
+        dst = rasterio.open(out_filename, 
                         'w', **out_profile)
-
+        
+    #pdb.set_trace() #this sets up break points
+    #improve this for multiprocessing!!
     for block_index, window in src_RP1.block_windows(1):
         RP1_block = src_RP1.read(window=window, masked=True)
         shape_block = RP1_block.shape
         RP1_block = RP1_block.ravel() #only sample of the form (20,), missing feature
-        RP1_block.reshape(-1,1)
+        #RP1_block.reshape(-1,1)
+        #RP2_block = src_RP2.read(window=window, masked=True)
+
+        result_block = mod.predict(RP1_block.reshape(-1,1)) # Note this is a fit!
+        result_block = result_block.reshape(shape_block)
+        dst.write(result_block, window=window)
     
-    #RP2_block = src_RP2.read(window=window, masked=True)
-
-    result_block = regr.predict(RP1_block.reshape(-1,1)) # Note this is a fit!
-    result_block = result_block.reshape(shape_block)
-    dst.write(result_block, window=window)
-
+    
+    #pdb.set_trace()
+    
     src_RP1.close()
     #src_RP2.close()
     dst.close()
     
+    
     return(out_filename)
     
     
-r_results = rasterio.open(out_filename)
-r_results.shape
+r = rasterio.open(test)
+type(r)
+r.shape
 
-plot.show(r_results)
+plot.show(r)
 
 ############################# END OF SCRIPT ###################################
 
