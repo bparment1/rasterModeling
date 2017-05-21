@@ -294,6 +294,15 @@ regr.fit(X_train,y_train) #fit model
 y_pred_train = regr.predict(X_train) # Note this is a fit!
 y_pred_test = regr.predict(X_test) # Note this is a fit!
 
+
+# Import the model we are using
+from sklearn.ensemble import RandomForestRegressor
+# Instantiate model with 1000 decision trees
+rf = RandomForestRegressor(n_estimators = 1000, random_state = random_seed)
+# Train the model on training data
+rf.fit(X_train,y_train);
+y_pred_train_rf = rf.predict(X_train);
+y_pred_train_rf.dtype #float32, need to convert to match data type of input raster!!!!
 #### Model evaluation
 
 #https://scikit-learn.org/stable/modules/classes.html#sklearn-metrics-metrics
@@ -384,6 +393,9 @@ rast_in = (os.path.join(in_dir,infile_lst_month1))
 
 test = rasterPredict(regr,rast_in,out_filename,out_dir)
 
+out_filename = "results_random_forest.tif"
+
+test2 = rasterPredict(rf,rast_in,out_filename,out_dir)
 
 def rasterPredict(mod,rast_in,out_filename=None,out_dir=None):
     
