@@ -359,7 +359,6 @@ regr.fit(X_train,y_train) #fit model
 y_pred_train = regr.predict(X_train) # Note this is a fit!
 y_pred_test = regr.predict(X_test) # Note this is a fit!
 
-
 # Import the model we are using
 from sklearn.ensemble import RandomForestRegressor
 # Instantiate model with 1000 decision trees
@@ -456,25 +455,42 @@ rast_in = (os.path.join(in_dir,infile_lst_month1))
 import pdb
 
 dtype_val = None
-out_filename = "results_linear_regression1.tif"
+out_filename = "results_linear_regression2.tif"
 test= pdb.runcall(rasterPredict,regr,rast_in,dtype_val,out_filename,out_dir)
+l_regr = rasterPredict(regr,rast_in,dtype_val,out_filename,out_dir)
+r_regr = rasterio.open(l_regr)
+plot.show(r_regr,clim=(0,15))
+plot.show(r_regr)
+
+array = r_regr.read()
+array.dtype
+array.min()
+array.max()
+np.histogram(array.ravel())
+plt.hist(array.ravel())
+plt.hist(array.ravel(),
+         bins=256,
+         range=(185,201.0))
+
+
+#https://towardsdatascience.com/random-forest-in-python-24d0893d51c0
 #dtype_val=None
 dtype_val = 'float64'
-out_filename = "results_random_forest1.tif"
-test= pdb.runcall(rasterPredict,rf,rast_in,dtype_val,out_filename,out_dir)
-r = rasterio.open(test)
+out_filename = "results_random_forest2.tif"
+#test= pdb.runcall(rasterPredict,rf,rast_in,dtype_val,out_filename,out_dir)
+r_rf = rasterio.open(test)
+plot.show(r_rf,clim=(3,15))
 
-test = rasterPredict(regr,rast_in,dtype_val,out_filename,out_dir)
+array = r_rf.read()
+array.dtype
+array.min()
+array.max()
 
-out_filename = "results_random_forest.tif"
-
-test2 = rasterPredict(rf,rast_in,out_filename,out_dir)
-
-r = rasterio.open(test)
-type(r)
-r.shape
-
-plot.show(r)
+np.histogram(array.ravel())
+plt.hist(array.ravel())
+plt.hist(array.ravel(),
+         bins=256,
+         range=(0,15))
 
 ############################# END OF SCRIPT ###################################
 
