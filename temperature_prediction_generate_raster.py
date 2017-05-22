@@ -111,6 +111,56 @@ def fit_ols_reg(avg_df,selected_features,selected_target,prop=0.3,random_seed=10
     
     return X, y, regr, residuals_df,data_metrics_df
 
+
+def rasterPredict(mod,rast_in,out_filename=None,out_dir=None):
+    
+    out_filename = os.path.join(out_dir,out_filename)
+    
+    ## Check for type:
+    
+    src_RP1 = rasterio.open(rast_in)
+    #src_RP2 = rasterio.open(os.path.join(in_dir,infile_lst_month7))
+
+    ## Check if file exists first, still a problem here
+    exists = os.path.isfile(out_filename)
+    if exists:
+        print("File already exists, removing file")
+        os.remove(out_filename)
+        
+        out_profile = src_RP1.profile.copy()
+        dst = rasterio.open(out_filename, 
+                        'w', 
+                        **out_profile)
+        
+    else:
+        print("creating file")
+        out_profile = src_RP1.profile.copy()
+        dst = rasterio.open(out_filename, 
+                        'w', **out_profile)
+        
+    #pdb.set_trace() #this sets up break points
+    #improve this for multiprocessing!!
+    for block_index, window in src_RP1.block_windows(1):
+        RP1_block = src_RP1.read(window=window, masked=True)
+        shape_block = RP1_block.shape
+        RP1_block = RP1_block.ravel() #only sample of the form (20,), missing feature
+        #RP1_block.reshape(-1,1)
+        #RP2_block = src_RP2.read(window=window, masked=True)
+
+        result_block = mod.predict(RP1_block.reshape(-1,1)) # Note this is a fit!
+        result_block = result_block.reshape(shape_block)
+        dst.write(result_block, window=window)
+    
+    
+    #pdb.set_trace()
+    
+    src_RP1.close()
+    #src_RP2.close()
+    dst.close()
+    
+    
+    return(out_filename)
+
 ############################################################################
 #####  Parameters and argument set up ###########
 
@@ -211,26 +261,16 @@ rasterio.plot.show(lst1,ax=ax,
 station_or.plot(ax=ax,marker="*",
               color="red",
                markersize=10)
+
+#ax.set_title("Long term mean for January land surface temperature", fontsize= 20)
+#fig.colorbar(ax)
                
-##### How to combine plots with matplotlib package
-fig, ax = plt.subplots(figsize = (16,6))
-lst_plot = ax.imshow(r_lst1, 
-                       cmap='Greys', 
-                       extent=spatial_extent)
-ax.set_title("Long term mean for January land surface temperature", fontsize= 20)
-fig.colorbar(lst_plot)
-
-#https://stackoverflow.com/questions/9662995/matplotlib-change-title-and-colorbar-text-and-tick-colors
-# turn off the x and y axes for prettier plotting
-#ax.set_axis_off(); #this removes coordinates on the plot
-
 ###########################################
 ### PART II : Extract information from raster and prepare covariates #######
 #raster = './data/slope.tif'
 
 lst1_gr = gr.from_file(os.path.join(in_dir,infile_lst_month1))
 lst7_gr = gr.from_file(os.path.join(in_dir,infile_lst_month7))
-
 type(lst1_gr) # check that we have a georaster object
 # Plot data
 
@@ -377,12 +417,13 @@ sns.boxplot(ax=ax[1],x='test',y='T7',data=residuals_jul_df) #title='July residua
 ax[1].set(ylim=(-8, 8)) 
 ax[1].set(title="Residuals in July") 
 
+plt.tight_layout()
+
 data_metrics.head()
 
 ################ APPLY TO RASTER TO PREDICT
 
-
-out_filename = "results8.tif"
+out_filename = "results9.tif"
 rast_in = rasterio.open(os.path.join(in_dir,rast_in))
 rast_in = (os.path.join(in_dir,infile_lst_month1))
 
@@ -397,54 +438,6 @@ out_filename = "results_random_forest.tif"
 
 test2 = rasterPredict(rf,rast_in,out_filename,out_dir)
 
-def rasterPredict(mod,rast_in,out_filename=None,out_dir=None):
-    
-    out_filename = os.path.join(out_dir,out_filename)
-    
-    ## Check for type:
-    
-    src_RP1 = rasterio.open(rast_in)
-    #src_RP2 = rasterio.open(os.path.join(in_dir,infile_lst_month7))
-
-    ## Check if file exists first, still a problem here
-    exists = os.path.isfile(out_filename)
-    if exists:
-        print("File already exists, removing file")
-        os.remove(out_filename)
-        
-        out_profile = src_RP1.profile.copy()
-        dst = rasterio.open(out_filename, 
-                        'w', 
-                        **out_profile)
-        
-    else:
-        print("creating file")
-        out_profile = src_RP1.profile.copy()
-        dst = rasterio.open(out_filename, 
-                        'w', **out_profile)
-        
-    #pdb.set_trace() #this sets up break points
-    #improve this for multiprocessing!!
-    for block_index, window in src_RP1.block_windows(1):
-        RP1_block = src_RP1.read(window=window, masked=True)
-        shape_block = RP1_block.shape
-        RP1_block = RP1_block.ravel() #only sample of the form (20,), missing feature
-        #RP1_block.reshape(-1,1)
-        #RP2_block = src_RP2.read(window=window, masked=True)
-
-        result_block = mod.predict(RP1_block.reshape(-1,1)) # Note this is a fit!
-        result_block = result_block.reshape(shape_block)
-        dst.write(result_block, window=window)
-    
-    
-    #pdb.set_trace()
-    
-    src_RP1.close()
-    #src_RP2.close()
-    dst.close()
-    
-    
-    return(out_filename)
     
     
 r = rasterio.open(test)
