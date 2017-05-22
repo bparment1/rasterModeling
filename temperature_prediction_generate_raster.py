@@ -10,7 +10,7 @@ Spyder Editor.
 #
 #AUTHORS: Benoit Parmentier
 #DATE CREATED: 05/12/2019
-#DATE MODIFIED: 05/20/2019
+#DATE MODIFIED: 05/22/2019
 #Version: 1
 #PROJECT: General utlity to apply model to raster
 #TO DO:
@@ -112,7 +112,7 @@ def fit_ols_reg(avg_df,selected_features,selected_target,prop=0.3,random_seed=10
     return X, y, regr, residuals_df,data_metrics_df
 
 
-def rasterPredict(mod,rast_in,out_filename=None,out_dir=None):
+def rasterPredict(mod,rast_in,dtype_val=None,out_filename=None,out_dir=None):
     
     out_filename = os.path.join(out_dir,out_filename)
     
@@ -120,7 +120,20 @@ def rasterPredict(mod,rast_in,out_filename=None,out_dir=None):
     
     src_RP1 = rasterio.open(rast_in)
     #src_RP2 = rasterio.open(os.path.join(in_dir,infile_lst_month7))
-
+    
+    #Option  to set the dtype from the predicted val??
+    
+    
+    #window = src_RP1.block_windows(1)
+    #block_array = src_RP1.read(window=window)
+    #RP1_block = src_RP1.read(window=window, masked=True)
+    #shape_block = RP1_block.shape
+    #RP1_block = RP1_block.ravel() #only sample of the form (20,), missing feature
+    #RP1_block.reshape(-1,1)
+ 
+    #result_block = mod.predict(RP1_block.reshape(-1,1)) # Note this is a fit!
+    #result_block.dtype
+    
     ## Check if file exists first, still a problem here
     exists = os.path.isfile(out_filename)
     if exists:
@@ -128,17 +141,27 @@ def rasterPredict(mod,rast_in,out_filename=None,out_dir=None):
         os.remove(out_filename)
         
         out_profile = src_RP1.profile.copy()
+        
+        if dtype_val!= None:
+            out_profile['dtype']=dtype_val
+            nodata_val = rasterio.dtypes.dtype_ranges[dtype_val][0] #take min val of range
+            out_profile['nodata']=nodata_val
+            
+        dst = rasterio.open(out_filename, 
+                        'w', 
+                        **out_profile)        
+    else:
+        print("creating file")
+        out_profile = src_RP1.profile.copy()
+        if dtype_val!= None:
+            out_profile['dtype']=dtype_val
+            nodata_val = rasterio.dtypes.dtype_ranges[dtype_val][0] #take min val of range
+            out_profile['nodata']=nodata_val
         dst = rasterio.open(out_filename, 
                         'w', 
                         **out_profile)
         
-    else:
-        print("creating file")
-        out_profile = src_RP1.profile.copy()
-        dst = rasterio.open(out_filename, 
-                        'w', **out_profile)
-        
-    #pdb.set_trace() #this sets up break points
+    pdb.set_trace() #this sets up break points
     #improve this for multiprocessing!!
     for block_index, window in src_RP1.block_windows(1):
         RP1_block = src_RP1.read(window=window, masked=True)
@@ -149,6 +172,8 @@ def rasterPredict(mod,rast_in,out_filename=None,out_dir=None):
 
         result_block = mod.predict(RP1_block.reshape(-1,1)) # Note this is a fit!
         result_block = result_block.reshape(shape_block)
+        
+        
         dst.write(result_block, window=window)
     
     
@@ -423,23 +448,28 @@ data_metrics.head()
 
 ################ APPLY TO RASTER TO PREDICT
 
-out_filename = "results9.tif"
-rast_in = rasterio.open(os.path.join(in_dir,rast_in))
+#rast_in = rasterio.open(os.path.join(in_dir,rast_in))
 rast_in = (os.path.join(in_dir,infile_lst_month1))
 
 
 #debugusing pdb
-#import pdb
-#pdb.runcall(rasterPredict,regr,rast_in,out_filename,out_dir)
+import pdb
 
-test = rasterPredict(regr,rast_in,out_filename,out_dir)
+dtype_val = None
+out_filename = "results_linear_regression1.tif"
+test= pdb.runcall(rasterPredict,regr,rast_in,dtype_val,out_filename,out_dir)
+#dtype_val=None
+dtype_val = 'float64'
+out_filename = "results_random_forest1.tif"
+test= pdb.runcall(rasterPredict,rf,rast_in,dtype_val,out_filename,out_dir)
+r = rasterio.open(test)
+
+test = rasterPredict(regr,rast_in,dtype_val,out_filename,out_dir)
 
 out_filename = "results_random_forest.tif"
 
 test2 = rasterPredict(rf,rast_in,out_filename,out_dir)
 
-    
-    
 r = rasterio.open(test)
 type(r)
 r.shape
@@ -447,59 +477,6 @@ r.shape
 plot.show(r)
 
 ############################# END OF SCRIPT ###################################
-
-
-src = rasterio.open(os.path.join(in_dir,infile_lst_month1))
-src.window
-assert len(set(src.block_shapes)) == 1
-window = src.block_windows(1)
-
-block_array = src.read(window=window)
-
-with rasterio.open("your/data/geo.tif") as src:
-     for block_index, window in src.block_windows(1):
-         block_array = src.read(window=window)
-         result_block = some_calculation(block_array)
-          
-
-with rasterio.open(os.path.join(in_dir,infile_lst_month1)) as src:
-    assert len(set(src.block_shapes)) == 1
-    for ji, window in src.block_windows(1):
-         b = (src.read(k, window=window) for k in (1))
-         print((ji, r.shape, g.shape, b.shape))
-         break
-
-
-
-import rasterio
-
-src_RP1 = rasterio.open(r'RP1_filename.tif')
-src_RP2 = rasterio.open(r'RP2_filename.tif')
-
-src_RP1 = rasterio.open(os.path.join(in_dir,infile_lst_month1))
-src_RP2 = rasterio.open(os.path.join(in_dir,infile_lst_month7))
-
-#out_profile = src_RP1.profile.copy()
-dst = rasterio.open(r'result.tif', 'w', **out_profile)
-
-for block_index, window in src_RP1.block_windows(1):
-    RP1_block = src_RP1.read(window=window, masked=True)
-    RP2_block = src_RP2.read(window=window, masked=True)
-
-    result_block = RP2_block - RP1_block
-    dst.write(result_block, window=window)
-
-src_RP1.close()
-src_RP2.close()
-dst.close()
-
-r_results = rasterio.open('result.tif')
-r_results.shape
-r_results.plot()
-
-plot.show(r_results)
-
-
 
 
 ###### Additional information ######
