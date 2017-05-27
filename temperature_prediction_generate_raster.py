@@ -1,4 +1,4 @@
-*# -*- coding: utf-8 -*-
+# -*- coding: utf-8 -*-
 """
 Spyder Editor.
 """
@@ -312,8 +312,8 @@ station_or['year'].value_counts()
 station_or.groupby(['month'])['value'].mean() # average by stations per month
      
 print("number of rows:",station_or.station.count(),", number of stations:",len(station_or.station.unique()))
-station_or['LST1'] = station_or['LST1'] - 273.15 #create new column
-station_or['LST7'] = station_or['LST7'] - 273.15 #create new column
+#station_or['LST1'] = station_or['LST1'] - 273.15 #create new column
+#station_or['LST7'] = station_or['LST7'] - 273.15 #create new column
 
 station_or_jan = station_or.loc[(station_or['month']==1) & (station_or['value']!=-9999)]
 station_or_jul = station_or.loc[(station_or['month']==7) & (station_or['value']!=-9999)]
@@ -337,16 +337,15 @@ avg_jul_df.head()
 
 ### rescaling:
 lst1_gdal = gdal.Open(os.path.join(in_dir,infile_lst_month1))
-gdal.Warp("dem_md.tif", dem_cropped_baltimore,dstSRS=crs_reg)
-dem_cropped_baltimore = None
+#gdal.Warp("dem_md.tif", dem_cropped_baltimore,dstSRS=crs_reg)
+#dem_cropped_baltimore = None
 
-gdal_calc.py -A input1.tif -B input2.tif --outfile=result.tif --calc="A+B"
 
 import os
 
 #gdal_path = 'whatever/path/gdal/is/installed/at'
 #gdal_calc_path = os.path.join(gdal_path, 'gdal_calc.py')
-gdal_calc_path =  os.path(join,'/usr/bin/gdal_calc.py','gdal_calc.py'
+gdal_calc_path =  os.path.join('/usr/bin','gdal_calc.py')
 
 # Arguements.
 input_file = os.path.join(in_dir,infile_lst_month1)
@@ -364,9 +363,13 @@ gdal_calc_str = 'python {0} -A {1} --outfile={2} --calc={3} '
 gdal_calc_process = gdal_calc_str.format(gdal_calc_path, input_file, 
     output_file, calc_expr)
 
+#gdal_calc.py -A input1.tif -B input2.tif --outfile=result.tif --calc="A+B"
 
 # Call process.
 os.system(gdal_calc_process)
+
+test = rasterio.open(output_file)
+plot.show(test,clim=(-10,50))
 
 ############
 ###  PART III : Fit model and generate prediction
@@ -418,8 +421,8 @@ clf.fit(X_train,y_train)
 SVR(C=1.0, cache_size=200, coef0=0.0, degree=3, epsilon=0.1,
     gamma='auto_deprecated', kernel='rbf', max_iter=-1, shrinking=True,
     tol=0.001, verbose=False)
-clf.predict([[1, 1]])
-array([1.5])
+#clf.predict([[1, 1]])
+#array([1.5])
 
 from sklearn.neural_network import MLPRegressor
 import numpy as np
@@ -518,18 +521,18 @@ data_metrics.head()
 ################ APPLY TO RASTER TO PREDICT
 
 #rast_in = rasterio.open(os.path.join(in_dir,rast_in))
-rast_in = (os.path.join(in_dir,infile_lst_month1))
-
+#rast_in = (os.path.join(in_dir,infile_lst_month1))
+rast_in = output_file
 
 #debugusing pdb
 import pdb
 
 dtype_val = None
-out_filename = "results_linear_regression4.tif"
+out_filename = "results_linear_regression6.tif"
 l_regr_filename = pdb.runcall(rasterPredict,regr,rast_in,dtype_val,out_filename,out_dir)
 l_regr_filename = rasterPredict(regr,rast_in,dtype_val,out_filename,out_dir)
 r_regr = rasterio.open(l_regr_filename)
-plot.show(r_regr,clim=(0,15)) 
+plot.show(r_regr,clim=(270,310)) 
 plot.show(r_regr)
 
 array = r_regr.read()
