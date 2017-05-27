@@ -1,4 +1,4 @@
-# -*- coding: utf-8 -*-
+*# -*- coding: utf-8 -*-
 """
 Spyder Editor.
 """
@@ -10,7 +10,7 @@ Spyder Editor.
 #
 #AUTHORS: Benoit Parmentier
 #DATE CREATED: 05/12/2019
-#DATE MODIFIED: 05/22/2019
+#DATE MODIFIED: 05/27/2019
 #Version: 1
 #PROJECT: General utlity to apply model to raster
 #TO DO:
@@ -332,12 +332,49 @@ avg_jul_df.shape
 avg_jan_df.head()
 avg_jul_df.head()
 
+
+
+
+### rescaling:
+lst1_gdal = gdal.Open(os.path.join(in_dir,infile_lst_month1))
+gdal.Warp("dem_md.tif", dem_cropped_baltimore,dstSRS=crs_reg)
+dem_cropped_baltimore = None
+
+gdal_calc.py -A input1.tif -B input2.tif --outfile=result.tif --calc="A+B"
+
+import os
+
+#gdal_path = 'whatever/path/gdal/is/installed/at'
+#gdal_calc_path = os.path.join(gdal_path, 'gdal_calc.py')
+gdal_calc_path =  os.path(join,'/usr/bin/gdal_calc.py','gdal_calc.py'
+
+# Arguements.
+input_file = os.path.join(in_dir,infile_lst_month1)
+output_file = os.path.join(out_dir,'rescaled_lst1.tif')
+calc_expr = '"A - 273.15"'
+#nodata = '0'
+#typeof = '"Byte"'
+
+# Generate string of process.
+#gdal_calc_str = 'python {0} -A {1} --outfile={2} --calc={3} --NoDataValue={4} --type={5}'
+#gdal_calc_process = gdal_calc_str.format(gdal_calc_path, input_file_path, 
+#    output_file_path, calc_expr, nodata, typeof)
+
+gdal_calc_str = 'python {0} -A {1} --outfile={2} --calc={3} '
+gdal_calc_process = gdal_calc_str.format(gdal_calc_path, input_file, 
+    output_file, calc_expr)
+
+
+# Call process.
+os.system(gdal_calc_process)
+
+############
+###  PART III : Fit model and generate prediction
+
 avg_jan_df['T1'] = avg_jan_df['value']/10
 avg_jul_df['T7'] = avg_jul_df['value']/10
          
-################################################
-###  PART III : Fit model and generate prediction
-
+####################################
 ### Add split training and testing!!!
 ### Add additionl covariates!!
 #selected_covariates_names_updated = selected_continuous_var_names + names_cat 
@@ -357,7 +394,9 @@ regr = LinearRegression() #create/instantiate object used for linear regresssion
 regr.fit(X_train,y_train) #fit model
 
 y_pred_train = regr.predict(X_train) # Note this is a fit!
-y_pred_test = regr.predict(X_test) # Note this is a fit!
+y_pred_test_regr = regr.predict(X_test) # Note this is a fit!
+y_pred_test_regr.dtype
+plt.hist(y_pred_test_regr)
 
 # Import the model we are using
 from sklearn.ensemble import RandomForestRegressor
@@ -366,20 +405,37 @@ rf = RandomForestRegressor(n_estimators = 1000, random_state = random_seed)
 # Train the model on training data
 rf.fit(X_train,y_train);
 y_pred_train_rf = rf.predict(X_train);
+y_pred_test_rf = rf.predict(X_test);
 y_pred_train_rf.dtype #float32, need to convert to match data type of input raster!!!!
+plt.hist(y_pred_test_rf)
 
 
 from sklearn import svm
-X = [[0, 0], [2, 2]]
-y = [0.5, 2.5]
+#X = [[0, 0], [2, 2]]
+#y = [0.5, 2.5]
 clf = svm.SVR()
-clf.fit(X, y) 
+clf.fit(X_train,y_train) 
 SVR(C=1.0, cache_size=200, coef0=0.0, degree=3, epsilon=0.1,
     gamma='auto_deprecated', kernel='rbf', max_iter=-1, shrinking=True,
     tol=0.001, verbose=False)
 clf.predict([[1, 1]])
 array([1.5])
 
+from sklearn.neural_network import MLPRegressor
+import numpy as np
+import matplotlib.pyplot as plt
+
+#x = np.arange(0.0, 1, 0.01).reshape(-1, 1)
+#y = np.sin(2 * np.pi * x).ravel()
+
+#reg = MLPRegressor(hidden_layer_sizes=(10,),  activation='relu', solver='adam',    alpha=0.001,batch_size='auto',
+#               learning_rate='constant', learning_rate_init=0.01, power_t=0.5, max_iter=1000, shuffle=True,
+#               random_state=None, tol=0.0001, verbose=False, warm_start=False, momentum=0.9,
+#               nesterovs_momentum=True, early_stopping=False, validation_fraction=0.1, beta_1=0.9, beta_2=0.999,
+#               epsilon=1e-08)
+
+reg = MLPRegressor(max_iter=1500)
+reg = reg.fit(X_train,y_train)
 
 #### Model evaluation
 
@@ -469,10 +525,10 @@ rast_in = (os.path.join(in_dir,infile_lst_month1))
 import pdb
 
 dtype_val = None
-out_filename = "results_linear_regression2.tif"
-test= pdb.runcall(rasterPredict,regr,rast_in,dtype_val,out_filename,out_dir)
-l_regr = rasterPredict(regr,rast_in,dtype_val,out_filename,out_dir)
-r_regr = rasterio.open(l_regr)
+out_filename = "results_linear_regression4.tif"
+l_regr_filename = pdb.runcall(rasterPredict,regr,rast_in,dtype_val,out_filename,out_dir)
+l_regr_filename = rasterPredict(regr,rast_in,dtype_val,out_filename,out_dir)
+r_regr = rasterio.open(l_regr_filename)
 plot.show(r_regr,clim=(0,15)) 
 plot.show(r_regr)
 
@@ -505,6 +561,26 @@ plt.hist(array.ravel())
 plt.hist(array.ravel(),
          bins=256,
          range=(0,15))
+
+
+#https://towardsdatascience.com/random-forest-in-python-24d0893d51c0
+#dtype_val=None
+
+array = r_mlp.read()
+array.dtypedtype_val = 'float64'
+out_filename = "results_mlp.tif"
+mlp_filename = pdb.runcall(rasterPredict,reg,rast_in,dtype_val,out_filename,out_dir)
+r_mlp = rasterio.open(mlp_filename)
+plot.show(r_mlp)
+
+array.min()
+array.max()
+
+np.histogram(array.ravel())
+plt.hist(array.ravel())
+plt.hist(array.ravel(),
+         bins=256,
+         range=(180,210))
 
 ############################# END OF SCRIPT ###################################
 
