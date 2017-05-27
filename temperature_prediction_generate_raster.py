@@ -521,8 +521,8 @@ data_metrics.head()
 ################ APPLY TO RASTER TO PREDICT
 
 #rast_in = rasterio.open(os.path.join(in_dir,rast_in))
-#rast_in = (os.path.join(in_dir,infile_lst_month1))
-rast_in = output_file
+rast_in = (os.path.join(in_dir,infile_lst_month1))
+#rast_in = output_file
 
 #debugusing pdb
 import pdb
@@ -532,7 +532,7 @@ out_filename = "results_linear_regression6.tif"
 l_regr_filename = pdb.runcall(rasterPredict,regr,rast_in,dtype_val,out_filename,out_dir)
 l_regr_filename = rasterPredict(regr,rast_in,dtype_val,out_filename,out_dir)
 r_regr = rasterio.open(l_regr_filename)
-plot.show(r_regr,clim=(270,310)) 
+#plot.show(r_regr,clim=(270,310)) 
 plot.show(r_regr)
 
 array = r_regr.read()
@@ -543,16 +543,18 @@ np.histogram(array.ravel())
 plt.hist(array.ravel())
 plt.hist(array.ravel(),
          bins=256,
-         range=(185,201.0))
+         range=(0,20))
 
 
 #https://towardsdatascience.com/random-forest-in-python-24d0893d51c0
 #dtype_val=None
 dtype_val = 'float64'
 out_filename = "results_random_forest2.tif"
-#test= pdb.runcall(rasterPredict,rf,rast_in,dtype_val,out_filename,out_dir)
+test= pdb.runcall(rasterPredict,rf,rast_in,dtype_val,out_filename,out_dir)
 r_rf = rasterio.open(test)
-plot.show(r_rf,clim=(3,15))
+
+plot.show(r_rf)
+plot.show(r_rf,clim=(0,20))
 
 array = r_rf.read()
 array.dtype
@@ -574,7 +576,10 @@ array.dtypedtype_val = 'float64'
 out_filename = "results_mlp.tif"
 mlp_filename = pdb.runcall(rasterPredict,reg,rast_in,dtype_val,out_filename,out_dir)
 r_mlp = rasterio.open(mlp_filename)
+
 plot.show(r_mlp)
+plot.show(r_mlp,clim=(0,20))
+plot.show(r_mlp,clim=(3,12))
 
 array.min()
 array.max()
@@ -583,7 +588,7 @@ np.histogram(array.ravel())
 plt.hist(array.ravel())
 plt.hist(array.ravel(),
          bins=256,
-         range=(180,210))
+         range=(0,20))
 
 ############################# END OF SCRIPT ###################################
 
