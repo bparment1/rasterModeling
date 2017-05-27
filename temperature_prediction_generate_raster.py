@@ -61,7 +61,7 @@ def create_dir_and_check_existence(path):
     except:
         print ("directory already exists")
 
-def fit_ols_reg(avg_df,selected_features,selected_target,prop=0.3,random_seed=100):
+def modelGenerate(avg_df,selected_features,selected_target,mod=None,prop=0.3,random_seed=100):
     #Function to fit a regressio model given a data frame
 
     X_train, X_test, y_train, y_test = train_test_split(avg_df[selected_features], 
@@ -69,16 +69,17 @@ def fit_ols_reg(avg_df,selected_features,selected_target,prop=0.3,random_seed=10
                                                     test_size=prop, 
                                                     random_state=random_seed)
     
-    from sklearn.linear_model import LinearRegression
-    regr = LinearRegression().fit(X_train,y_train)
+    if mod==None:
+        from sklearn.linear_model import LinearRegression
+        mod = LinearRegression().fit(X_train,y_train)
 
-    regr.fit(X_train, y_train)
+    mod.fit(X_train, y_train)
 
-    y_pred_train = regr.predict(X_train) # Note this is a fit!
-    y_pred_test = regr.predict(X_test) # Note this is a fit!
+    y_pred_train = mod.predict(X_train) # Note this is a fit!
+    y_pred_test = mod.predict(X_test) # Note this is a fit!
 
-    r2_val_train = regr.score(X_train, y_train) #coefficient of determination (R2)
-    r2_val_test = regr.score(X_test, y_test)
+    #r2_val_train = regr.score(X_train, y_train) #coefficient of determination (R2)
+    #r2_val_test = regr.score(X_test, y_test)
 
     from sklearn import metrics
     #https://scikit-learn.org/stable/modules/classes.html#sklearn-metrics-metrics
@@ -109,7 +110,7 @@ def fit_ols_reg(avg_df,selected_features,selected_target,prop=0.3,random_seed=10
         
     residuals_df = pd.concat([residuals_val_test,residuals_val_train],sort=False)
     
-    return X, y, regr, residuals_df,data_metrics_df
+    return X, y, mod, residuals_df,data_metrics_df
 
 
 def rasterPredict(mod,rast_in,dtype_val=None,out_filename=None,out_dir=None):
