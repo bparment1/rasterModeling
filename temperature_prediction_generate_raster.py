@@ -379,24 +379,37 @@ data_metrics.head()
 src_RP1 = rasterio.open(os.path.join(in_dir,infile_lst_month1))
 #src_RP2 = rasterio.open(os.path.join(in_dir,infile_lst_month7))
 
-#out_profile = src_RP1.profile.copy()
-dst = rasterio.open(r'result.tif', 'w', **out_profile)
+out_filename = "results4.tif"
+
+out_filename = os.path.join(out_dir,out_filename)
+## Check if file exists first
+exists = os.path.isfile(out_filename)
+if exists:
+    break
+else:
+    print("creating file")
+    out_profile = src_RP1.profile.copy()
+    dst = rasterio.open(r'result3.tif', 
+                        'w', **out_profile)
 
 for block_index, window in src_RP1.block_windows(1):
     RP1_block = src_RP1.read(window=window, masked=True)
+    shape_block = RP1_block.shape
+    RP1_block = RP1_block.ravel() #only sample of the form (20,), missing feature
+    RP1_block.reshape(-1,1)
+    
     #RP2_block = src_RP2.read(window=window, masked=True)
 
-    result_block = regr.predict(RP1_block) # Note this is a fit!
-
+    result_block = regr.predict(RP1_block.reshape(-1,1)) # Note this is a fit!
+    result_block = result_block.reshape(shape_block)
     dst.write(result_block, window=window)
 
 src_RP1.close()
-src_RP2.close()
+#src_RP2.close()
 dst.close()
 
-r_results = rasterio.open('result.tif')
+r_results = rasterio.open(out_filename)
 r_results.shape
-r_results.plot()
 
 plot.show(r_results)
 
