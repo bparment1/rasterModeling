@@ -43,6 +43,10 @@ from shapely.geometry import Point
 from collections import OrderedDict
 import webcolors
 import sklearn
+from sklearn.linear_model import LinearRegression
+from sklearn import metrics
+from sklearn.model_selection import train_test_split
+from sklearn.linear_model import LinearRegression
 
 ################ NOW FUNCTIONS  ###################
 
@@ -199,9 +203,7 @@ plt.hist(r_lst1.ravel(),
          
 ##### Combine raster layer and geogpanda layer
 
-data_gpd.plot(marker="*",color="green",markersize=5)
-
-station_or = data_gpd.to_crs({'init': 'epsg:2991'}) #reproject to  match the  raster image
+station_or = gpd.read_file(os.path.join(in_dir,ghcn_filename))
 
 ##### How to combine plots with rasterio package
 fig, ax = plt.subplots()
@@ -274,13 +276,11 @@ avg_jul_df['T7'] = avg_jul_df['value']/10
 
 ### Add split training and testing!!!
 ### Add additionl covariates!!
-
 #selected_covariates_names_updated = selected_continuous_var_names + names_cat 
 selected_features = ['LST1'] #selected features
 selected_target = ['T1'] #selected dependent variables
 ## Split training and testing
 
-from sklearn.model_selection import train_test_split
 
 X_train, X_test, y_train, y_test = train_test_split(avg_jan_df[selected_features], 
                                                     avg_jan_df[selected_target], 
@@ -289,7 +289,6 @@ X_train, X_test, y_train, y_test = train_test_split(avg_jan_df[selected_features
    
 X_train.shape
 
-from sklearn.linear_model import LinearRegression
 regr = LinearRegression() #create/instantiate object used for linear regresssion
 regr.fit(X_train,y_train) #fit model
 
@@ -298,16 +297,17 @@ y_pred_test = regr.predict(X_test) # Note this is a fit!
 
 #### Model evaluation
 
-r2_val_train = regr.score(X_train, y_train) #coefficient of determination (R2)
-r2_val_test = regr.score(X_test, y_test)
-
-from sklearn import metrics
 #https://scikit-learn.org/stable/modules/classes.html#sklearn-metrics-metrics
-
+r2_val_test = regr.score(X_test, y_test)
 mae_val_test = metrics.mean_absolute_error(y_test, y_pred_test) #MAE
 rmse_val_test = np.sqrt(metrics.mean_squared_error(y_test, y_pred_test)) #RMSE
-mae_val_train = metrics.mean_absolute_error(
+
+r2_val_train = regr.score(X_train, y_train) #coefficient of determination (R2)
+rmse_val_train = np.sqrt(metrics.mean_squared_error(y_train, y_pred_train)) #RMSE
+mae_val_train = metrics.mean_absolute_error(y_test, y_pred_test)
+
 data = np.array([[mae_val_test,rmse_val_test,r2_val_test],[mae_val_train,rmse_val_train,r2_val_train]])
+    
 data_metrics_df = pd.DataFrame(data,columns=['mae','rmse','r2'])
 data_metrics_df['test']=[1,0]
 #metrics.r2_scores(y_test, y_pred_test)
@@ -316,21 +316,116 @@ plt.scatter(X_train, y_train,  color='black')
 plt.plot(X_train, regr.predict(X_train), color='blue', linewidth=3)
 plt.xticks(())
 plt.yticks(())
+plt.xlabel("LST temperature")
+plt.ylabel("Air temperature")
+plt.title("Regression between satellite based temperature and air temperature")
 plt.show()
 
 print('reg coef',regr.coef_)
 print('reg intercept',regr.intercept_)
 
-### let's apply the model to January:
+selected_features = ['LST1'] #selected features
+selected_target = ['T1'] #selected dependent variables
+
+fit_ols_jan = fit_ols_reg(avg_df=avg_jan_df,
+            selected_features = selected_features,
+            selected_target = selected_target,
+            prop=0.3,
+            random_seed=10)
+
+selected_features = ['LST7'] #selected features
+selected_target = ['T7'] #selected dependent variables
+
+fit_ols_jul = fit_ols_reg(avg_df=avg_jul_df,
+            selected_features = selected_features,
+            selected_target = selected_target,
+            prop=0.3,
+            random_seed=10)
+
+data_metrics = pd.concat([fit_ols_jan[4],fit_ols_jul[4]])
+data_metrics['month'] = [1,1,7,7] 
+data_metrics
+
+residuals_jan_df =fit_ols_jan[3]
+residuals_jul_df =fit_ols_jul[3]
+
+residuals_jan_df.columns
+residuals_jan_df['test'] = residuals_jan_df['test'].astype('category')
+outfile = os.path.join(out_dir,"residuals_jan_df_"+out_suffix+".csv")
+residuals_jan_df.to_csv(outfile)
+
+residuals_jul_df['test'] = residuals_jul_df['test'].astype('category')
+outfile = os.path.join(out_dir,"residuals_jul_df_"+out_suffix+".csv")
+residuals_jul_df.to_csv(outfile)
+    
+#change data type to categorical
+sns.boxplot(x='test',y='T1',data=residuals_df)
+
+#Note that we had to change data type to categorical for the variable used on the x-axis!
+
+f, ax = plt.subplots(1, 2)
+sns.boxplot(ax=ax[0],x='test',y='T1',data=residuals_jan_df)#title='January residuals')
+ax[0].set(ylim=(-8, 8)) 
+ax[0].set(title="Residuals in January") 
+
+sns.boxplot(ax=ax[1],x='test',y='T7',data=residuals_jul_df) #title='July residuals')
+ax[1].set(ylim=(-8, 8)) 
+ax[1].set(title="Residuals in July") 
+
+data_metrics.head()
 
 ###First test window reading:
 
-with rasterio.open('tests/data/RGB.byte.tif') as src:
+
+src = rasterio.open(os.path.join(in_dir,infile_lst_month1))
+src.window
+assert len(set(src.block_shapes)) == 1
+window = src.block_windows(1)
+
+block_array = src.read(window=window)
+
+with rasterio.open("your/data/geo.tif") as src:
+     for block_index, window in src.block_windows(1):
+         block_array = src.read(window=window)
+         result_block = some_calculation(block_array)
+          
+
+with rasterio.open(os.path.join(in_dir,infile_lst_month1)) as src:
     assert len(set(src.block_shapes)) == 1
     for ji, window in src.block_windows(1):
-         b, g, r = (src.read(k, window=window) for k in (1, 2, 3))
+         b = (src.read(k, window=window) for k in (1))
          print((ji, r.shape, g.shape, b.shape))
          break
+
+
+
+import rasterio
+
+src_RP1 = rasterio.open(r'RP1_filename.tif')
+src_RP2 = rasterio.open(r'RP2_filename.tif')
+
+src_RP1 = rasterio.open(os.path.join(in_dir,infile_lst_month1))
+src_RP2 = rasterio.open(os.path.join(in_dir,infile_lst_month7))
+
+#out_profile = src_RP1.profile.copy()
+dst = rasterio.open(r'result.tif', 'w', **out_profile)
+
+for block_index, window in src_RP1.block_windows(1):
+    RP1_block = src_RP1.read(window=window, masked=True)
+    RP2_block = src_RP2.read(window=window, masked=True)
+
+    result_block = RP2_block - RP1_block
+    dst.write(result_block, window=window)
+
+src_RP1.close()
+src_RP2.close()
+dst.close()
+
+r_results = rasterio.open('result.tif')
+r_results.shape
+r_results.plot()
+
+plot.show(r_results)
 
 
 
