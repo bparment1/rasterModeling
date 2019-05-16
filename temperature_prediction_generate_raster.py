@@ -2,7 +2,7 @@
 """
 Spyder Editor.
 """
-#################################### Regression Temperature #######################################
+#################################### Raster Modeling #######################################
 ######################## Analyze and predict air temperature with Earth Observation data #######################################
 #This script performs analyses to predict air temperature using several coveriates.
 #The goal is to predict air temperature using Remotely Sensing data as well as compare measurements
@@ -12,7 +12,7 @@ Spyder Editor.
 #DATE CREATED: 05/12/2019
 #DATE MODIFIED: 05/12/2019
 #Version: 1
-#PROJECT: SESYNC Geospatial Course and AAG 2019 Python Geospatial Course
+#PROJECT: General utlity to apply model to raster
 #TO DO:
 #
 #COMMIT: clean up code for workshop
@@ -121,7 +121,7 @@ out_dir = "/home/bparmentier/Data/Benoit/python/rasterModeling/outputs"
 #ARGS 3:
 create_out_dir=True #create a new ouput dir if TRUE
 #ARGS 7
-out_suffix = "exercise4_03032019" #output suffix for the files and ouptut folder
+out_suffix = "rasterModeling_test_05162019" #output suffix for the files and ouptut folder
 #ARGS 8
 NA_value = -9999 # NA flag balue
 file_format = ".tif"
@@ -182,11 +182,11 @@ plot.show(lst7)
 r_lst1 = lst1.read(1,masked=True) #read first array with masked value, nan are assigned for NA
 r_lst7 = lst7.read(1,masked=True) #read first array with masked value, nan are assigned for NA
 
-spatial_extent = rasterio.plot.plotting_extent(lst1)
 type(r_lst1)
 r_lst1.size
 
 r_diff = r_lst7 - r_lst1
+
 plt.imshow(r_diff) # other way to display data
 plt.title("Difference in land surface temperature between January and July ", fontsize= 20)
 plt.colorbar()
@@ -200,6 +200,7 @@ plt.hist(r_lst1.ravel(),
 ##### Combine raster layer and geogpanda layer
 
 data_gpd.plot(marker="*",color="green",markersize=5)
+
 station_or = data_gpd.to_crs({'init': 'epsg:2991'}) #reproject to  match the  raster image
 
 ##### How to combine plots with rasterio package
@@ -231,8 +232,6 @@ lst7_gr = gr.from_file(os.path.join(in_dir,infile_lst_month7))
 
 type(lst1_gr) # check that we have a georaster object
 # Plot data
-lst1_gr.plot()
-lst1_gr.plot(clim=(259.0, 287.0))
 
 #### Extract information from raster using coordinates
 x_coord = station_or.geometry.x # pands.core.series.Series
@@ -322,54 +321,17 @@ plt.show()
 print('reg coef',regr.coef_)
 print('reg intercept',regr.intercept_)
 
-############ Now use y_train, y_pred_train) #MAE
-rmse_val_train = np.sqrt(metrics.mean_squared_error(y_train, y_pred_train)) #RMSE
+### let's apply the model to January:
 
-selected_features = ['LST1'] #selected features
-selected_target = ['T1'] #selected dependent variables
+###First test window reading:
 
-fit_ols_jan = fit_ols_reg(avg_df=avg_jan_df,
-            selected_features = selected_features,
-            selected_target = selected_target,
-            prop=0.3,
-            random_seed=10)
+with rasterio.open('tests/data/RGB.byte.tif') as src:
+    assert len(set(src.block_shapes)) == 1
+    for ji, window in src.block_windows(1):
+         b, g, r = (src.read(k, window=window) for k in (1, 2, 3))
+         print((ji, r.shape, g.shape, b.shape))
+         break
 
-selected_features = ['LST7'] #selected features
-selected_target = ['T7'] #selected dependent variables
-
-fit_ols_jul = fit_ols_reg(avg_df=avg_jul_df,
-            selected_features = selected_features,
-            selected_target = selected_target,
-            prop=0.3,
-            random_seed=10)
-
-
-data_metrics = pd.concat([fit_ols_jan[4],fit_ols_jul[4]])
-data_metrics['month'] = [1,1,7,7] 
-
-data_metrics
-
-#data_metrics.to_csv
-#### now plot residuals
-
-#need to add residuals to outputs!!
-#return X_train, X_test, y_train, y_test, regr, data_metrics_df
-
-residuals_df =fit_ols_jan[3]
-
-#X_train =fit_ols_jan[5]
-
-residuals_df.columns
-residuals_df['test'] = residuals_df['test'].astype('category')
-    
-#change data type to categorical
-sns.boxplot(x='test',y='T1',data=residuals_df)
-
-## As the plot shows for 2006, we have 15 land cover types. Analyzing such complex categories in terms of decreasse (loss), increase (gain),
-### Do models for January,July with LST and with/without land cover % of forest
-## Calculate MAE,RMSE,R2,etc. inspire yourself from paper. Save this into a CSV file.
-
-###Ok now use station_or data: ELEV_SRTM, LC10?
 
 
 ############################# END OF SCRIPT ###################################
