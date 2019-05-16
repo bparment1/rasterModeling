@@ -374,7 +374,38 @@ ax[1].set(title="Residuals in July")
 
 data_metrics.head()
 
-###First test window reading:
+################ APPLY TO RASTER TO PREDICT
+
+src_RP1 = rasterio.open(os.path.join(in_dir,infile_lst_month1))
+#src_RP2 = rasterio.open(os.path.join(in_dir,infile_lst_month7))
+
+#out_profile = src_RP1.profile.copy()
+dst = rasterio.open(r'result.tif', 'w', **out_profile)
+
+for block_index, window in src_RP1.block_windows(1):
+    RP1_block = src_RP1.read(window=window, masked=True)
+    #RP2_block = src_RP2.read(window=window, masked=True)
+
+    result_block = regr.predict(RP1_block) # Note this is a fit!
+
+    dst.write(result_block, window=window)
+
+src_RP1.close()
+src_RP2.close()
+dst.close()
+
+r_results = rasterio.open('result.tif')
+r_results.shape
+r_results.plot()
+
+plot.show(r_results)
+
+
+
+
+
+
+
 
 
 src = rasterio.open(os.path.join(in_dir,infile_lst_month1))
