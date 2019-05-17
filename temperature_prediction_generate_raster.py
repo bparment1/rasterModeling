@@ -385,6 +385,7 @@ out_filename = os.path.join(out_dir,out_filename)
 ## Check if file exists first
 exists = os.path.isfile(out_filename)
 if exists:
+    prin("File already exists")
     break
 else:
     print("creating file")
