@@ -390,7 +390,7 @@ def rasterPredict(mod,rast_in,out_filename=None,out_dir=None):
     exists = os.path.isfile(out_filename)
     if exists:
         prin("File already exists")
-        break
+        
     else:
         print("creating file")
         out_profile = src_RP1.profile.copy()
