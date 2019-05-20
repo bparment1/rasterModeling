@@ -10,7 +10,7 @@ Spyder Editor.
 #
 #AUTHORS: Benoit Parmentier
 #DATE CREATED: 05/12/2019
-#DATE MODIFIED: 05/12/2019
+#DATE MODIFIED: 05/20/2019
 #Version: 1
 #PROJECT: General utlity to apply model to raster
 #TO DO:
@@ -134,7 +134,6 @@ file_format = ".tif"
 CRS_reg = "+proj=aea +lat_1=29.5 +lat_2=45.5 +lat_0=23 +lon_0=-96 +x_0=0 +y_0=0 +ellps=GRS80 +towgs84=0,0,0,0,0,0,0 +units=m +no_defs"
 method_proj_val = "bilinear" # method option for the reprojection and resampling
 gdal_installed = True #if TRUE, GDAL is used to generate distance files
-
 
 #epsg 2991
 crs_reg = "+proj=lcc +lat_1=43 +lat_2=45.5 +lat_0=41.75 +lon_0=-120.5 +x_0=400000 +y_0=0 +ellps=GRS80 +datum=NAD83 +units=m +no_defs"
@@ -358,9 +357,6 @@ residuals_jul_df['test'] = residuals_jul_df['test'].astype('category')
 outfile = os.path.join(out_dir,"residuals_jul_df_"+out_suffix+".csv")
 residuals_jul_df.to_csv(outfile)
     
-#change data type to categorical
-sns.boxplot(x='test',y='T1',data=residuals_df)
-
 #Note that we had to change data type to categorical for the variable used on the x-axis!
 
 f, ax = plt.subplots(1, 2)
@@ -376,28 +372,36 @@ data_metrics.head()
 
 ################ APPLY TO RASTER TO PREDICT
 
-src_RP1 = rasterio.open(os.path.join(in_dir,infile_lst_month1))
-#src_RP2 = rasterio.open(os.path.join(in_dir,infile_lst_month7))
 
 out_filename = "results4.tif"
+rast_in = rasterio.open(os.path.join(in_dir,rast_in))
 
-out_filename = os.path.join(out_dir,out_filename)
-## Check if file exists first
-exists = os.path.isfile(out_filename)
-if exists:
-    prin("File already exists")
-    break
-else:
-    print("creating file")
-    out_profile = src_RP1.profile.copy()
-    dst = rasterio.open(r'result3.tif', 
+
+def rasterPredict(mod,rast_in,out_filename=None,out_dir=None):
+    
+    out_filename = os.path.join(out_dir,out_filename)
+    
+    ## Check for type:
+    
+    src_RP1 = rasterio.open(rast_in)
+    #src_RP2 = rasterio.open(os.path.join(in_dir,infile_lst_month7))
+
+    ## Check if file exists first
+    exists = os.path.isfile(out_filename)
+    if exists:
+        prin("File already exists")
+        break
+    else:
+        print("creating file")
+        out_profile = src_RP1.profile.copy()
+        dst = rasterio.open(r'result.tif', 
                         'w', **out_profile)
 
-for block_index, window in src_RP1.block_windows(1):
-    RP1_block = src_RP1.read(window=window, masked=True)
-    shape_block = RP1_block.shape
-    RP1_block = RP1_block.ravel() #only sample of the form (20,), missing feature
-    RP1_block.reshape(-1,1)
+    for block_index, window in src_RP1.block_windows(1):
+        RP1_block = src_RP1.read(window=window, masked=True)
+        shape_block = RP1_block.shape
+        RP1_block = RP1_block.ravel() #only sample of the form (20,), missing feature
+        RP1_block.reshape(-1,1)
     
     #RP2_block = src_RP2.read(window=window, masked=True)
 
@@ -405,21 +409,19 @@ for block_index, window in src_RP1.block_windows(1):
     result_block = result_block.reshape(shape_block)
     dst.write(result_block, window=window)
 
-src_RP1.close()
-#src_RP2.close()
-dst.close()
-
+    src_RP1.close()
+    #src_RP2.close()
+    dst.close()
+    
+    return(out_filename)
+    
+    
 r_results = rasterio.open(out_filename)
 r_results.shape
 
 plot.show(r_results)
 
-
-
-
-
-
-
+############################# END OF SCRIPT ###################################
 
 
 src = rasterio.open(os.path.join(in_dir,infile_lst_month1))
@@ -471,10 +473,6 @@ r_results.shape
 r_results.plot()
 
 plot.show(r_results)
-
-
-
-############################# END OF SCRIPT ###################################
 
 
 
