@@ -201,7 +201,7 @@ out_dir = "/home/bparmentier/Data/Benoit/python/rasterModeling/outputs"
 #ARGS 3:
 create_out_dir=True #create a new ouput dir if TRUE
 #ARGS 7
-out_suffix = "rasterModeling_test_05162019" #output suffix for the files and ouptut folder
+out_suffix = "rasterModeling_test_05272019" #output suffix for the files and ouptut folder
 #ARGS 8
 NA_value = -9999 # NA flag balue
 file_format = ".tif"
@@ -333,19 +333,9 @@ avg_jul_df.shape
 avg_jan_df.head()
 avg_jul_df.head()
 
-
-
-
 ### rescaling:
 lst1_gdal = gdal.Open(os.path.join(in_dir,infile_lst_month1))
-#gdal.Warp("dem_md.tif", dem_cropped_baltimore,dstSRS=crs_reg)
-#dem_cropped_baltimore = None
 
-
-import os
-
-#gdal_path = 'whatever/path/gdal/is/installed/at'
-#gdal_calc_path = os.path.join(gdal_path, 'gdal_calc.py')
 gdal_calc_path =  os.path.join('/usr/bin','gdal_calc.py')
 
 # Arguements.
@@ -363,8 +353,6 @@ calc_expr = '"A - 273.15"'
 gdal_calc_str = 'python {0} -A {1} --outfile={2} --calc={3} '
 gdal_calc_process = gdal_calc_str.format(gdal_calc_path, input_file, 
     output_file, calc_expr)
-
-#gdal_calc.py -A input1.tif -B input2.tif --outfile=result.tif --calc="A+B"
 
 # Call process.
 os.system(gdal_calc_process)
@@ -417,17 +405,13 @@ plt.hist(y_pred_test_rf)
 from sklearn import svm
 #X = [[0, 0], [2, 2]]
 #y = [0.5, 2.5]
-clf = svm.SVR()
-clf.fit(X_train,y_train) 
-SVR(C=1.0, cache_size=200, coef0=0.0, degree=3, epsilon=0.1,
-    gamma='auto_deprecated', kernel='rbf', max_iter=-1, shrinking=True,
-    tol=0.001, verbose=False)
-#clf.predict([[1, 1]])
-#array([1.5])
+reg_svr = svm.SVR(C=100,kernel='rbf',gamma=0.1,epsilon=0.1)
+reg_svr.fit(X_train,y_train) 
+#SVR(C=1.0, cache_size=200, coef0=0.0, degree=3, epsilon=0.1,
+#    gamma='auto_deprecated', kernel='rbf', max_iter=-1, shrinking=True,
+#    tol=0.001, verbose=False)
 
 from sklearn.neural_network import MLPRegressor
-import numpy as np
-import matplotlib.pyplot as plt
 
 #x = np.arange(0.0, 1, 0.01).reshape(-1, 1)
 #y = np.sin(2 * np.pi * x).ravel()
@@ -438,19 +422,19 @@ import matplotlib.pyplot as plt
 #               nesterovs_momentum=True, early_stopping=False, validation_fraction=0.1, beta_1=0.9, beta_2=0.999,
 #               epsilon=1e-08)
 
-reg = MLPRegressor(max_iter=1500)
-reg = reg.fit(X_train,y_train)
+reg_MLP = MLPRegressor(max_iter=1500)
+reg_MLP = reg_MLP.fit(X_train,y_train)
 
 #### Model evaluation
 
 #https://scikit-learn.org/stable/modules/classes.html#sklearn-metrics-metrics
 r2_val_test = regr.score(X_test, y_test)
-mae_val_test = metrics.mean_absolute_error(y_test, y_pred_test) #MAE
-rmse_val_test = np.sqrt(metrics.mean_squared_error(y_test, y_pred_test)) #RMSE
+mae_val_test = metrics.mean_absolute_error(y_test, y_pred_test_regr) #MAE
+rmse_val_test = np.sqrt(metrics.mean_squared_error(y_test, y_pred_test_regr)) #RMSE
 
 r2_val_train = regr.score(X_train, y_train) #coefficient of determination (R2)
 rmse_val_train = np.sqrt(metrics.mean_squared_error(y_train, y_pred_train)) #RMSE
-mae_val_train = metrics.mean_absolute_error(y_test, y_pred_test)
+mae_val_train = metrics.mean_absolute_error(y_test, y_pred_test_regr)
 
 data = np.array([[mae_val_test,rmse_val_test,r2_val_test],[mae_val_train,rmse_val_train,r2_val_train]])
     
@@ -469,55 +453,6 @@ plt.show()
 
 print('reg coef',regr.coef_)
 print('reg intercept',regr.intercept_)
-
-selected_features = ['LST1'] #selected features
-selected_target = ['T1'] #selected dependent variables
-
-fit_ols_jan = fit_ols_reg(avg_df=avg_jan_df,
-            selected_features = selected_features,
-            selected_target = selected_target,
-            prop=0.3,
-            random_seed=10)
-
-selected_features = ['LST7'] #selected features
-selected_target = ['T7'] #selected dependent variables
-
-fit_ols_jul = fit_ols_reg(avg_df=avg_jul_df,
-            selected_features = selected_features,
-            selected_target = selected_target,
-            prop=0.3,
-            random_seed=10)
-
-data_metrics = pd.concat([fit_ols_jan[4],fit_ols_jul[4]])
-data_metrics['month'] = [1,1,7,7] 
-data_metrics
-
-residuals_jan_df =fit_ols_jan[3]
-residuals_jul_df =fit_ols_jul[3]
-
-residuals_jan_df.columns
-residuals_jan_df['test'] = residuals_jan_df['test'].astype('category')
-outfile = os.path.join(out_dir,"residuals_jan_df_"+out_suffix+".csv")
-residuals_jan_df.to_csv(outfile)
-
-residuals_jul_df['test'] = residuals_jul_df['test'].astype('category')
-outfile = os.path.join(out_dir,"residuals_jul_df_"+out_suffix+".csv")
-residuals_jul_df.to_csv(outfile)
-    
-#Note that we had to change data type to categorical for the variable used on the x-axis!
-
-f, ax = plt.subplots(1, 2)
-sns.boxplot(ax=ax[0],x='test',y='T1',data=residuals_jan_df)#title='January residuals')
-ax[0].set(ylim=(-8, 8)) 
-ax[0].set(title="Residuals in January") 
-
-sns.boxplot(ax=ax[1],x='test',y='T7',data=residuals_jul_df) #title='July residuals')
-ax[1].set(ylim=(-8, 8)) 
-ax[1].set(title="Residuals in July") 
-
-plt.tight_layout()
-
-data_metrics.head()
 
 ################ APPLY TO RASTER TO PREDICT
 
