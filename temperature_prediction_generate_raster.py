@@ -424,6 +424,10 @@ from sklearn.neural_network import MLPRegressor
 
 reg_MLP = MLPRegressor(max_iter=1500)
 reg_MLP = reg_MLP.fit(X_train,y_train)
+y_pred_train_mlp = reg_MLP.predict(X_train);
+y_pred_test_mlp = reg_MLP.predict(X_test);
+y_pred_train_mlp.dtype #float32, need to convert to match data type of input raster!!!!
+plt.hist(y_pred_test_mlp)
 
 #### Model evaluation
 
@@ -456,6 +460,9 @@ print('reg intercept',regr.intercept_)
 
 ################ APPLY TO RASTER TO PREDICT
 
+##################################
+''' Testing linear regression on raster '''
+
 #rast_in = rasterio.open(os.path.join(in_dir,rast_in))
 rast_in = (os.path.join(in_dir,infile_lst_month1))
 #rast_in = output_file
@@ -464,7 +471,7 @@ rast_in = (os.path.join(in_dir,infile_lst_month1))
 import pdb
 
 dtype_val = None
-out_filename = "results_linear_regression6.tif"
+out_filename = "results_linear_regression.tif"
 l_regr_filename = pdb.runcall(rasterPredict,regr,rast_in,dtype_val,out_filename,out_dir)
 l_regr_filename = rasterPredict(regr,rast_in,dtype_val,out_filename,out_dir)
 r_regr = rasterio.open(l_regr_filename)
@@ -482,10 +489,13 @@ plt.hist(array.ravel(),
          range=(0,20))
 
 
+##################################
+''' Testing random forest on raster '''
+
 #https://towardsdatascience.com/random-forest-in-python-24d0893d51c0
 #dtype_val=None
 dtype_val = 'float64'
-out_filename = "results_random_forest2.tif"
+out_filename = "results_random_forest.tif"
 test= pdb.runcall(rasterPredict,rf,rast_in,dtype_val,out_filename,out_dir)
 r_rf = rasterio.open(test)
 
@@ -507,10 +517,13 @@ plt.hist(array.ravel(),
 #https://towardsdatascience.com/random-forest-in-python-24d0893d51c0
 #dtype_val=None
 
-array = r_mlp.read()
-array.dtypedtype_val = 'float64'
+##################################
+''' Testing MLP on raster '''
+
+dtype_val = 'float64'
+
 out_filename = "results_mlp.tif"
-mlp_filename = pdb.runcall(rasterPredict,reg,rast_in,dtype_val,out_filename,out_dir)
+mlp_filename = pdb.runcall(rasterPredict,reg_MLP,rast_in,dtype_val,out_filename,out_dir)
 r_mlp = rasterio.open(mlp_filename)
 
 plot.show(r_mlp)
