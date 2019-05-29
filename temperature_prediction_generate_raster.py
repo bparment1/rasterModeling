@@ -10,7 +10,7 @@ Spyder Editor.
 #
 #AUTHORS: Benoit Parmentier
 #DATE CREATED: 05/12/2019
-#DATE MODIFIED: 05/27/2019
+#DATE MODIFIED: 05/29/2019
 #Version: 1
 #PROJECT: General utlity to apply model to raster
 #TO DO:
@@ -47,6 +47,11 @@ from sklearn.linear_model import LinearRegression
 from sklearn import metrics
 from sklearn.model_selection import train_test_split
 from sklearn.linear_model import LinearRegression
+#debugusing pdb
+import pdb
+from sklearn.ensemble import RandomForestRegressor
+from sklearn import svm
+from sklearn.neural_network import MLPRegressor
 
 ################ NOW FUNCTIONS  ###################
 
@@ -391,7 +396,7 @@ y_pred_test_regr.dtype
 plt.hist(y_pred_test_regr)
 
 # Import the model we are using
-from sklearn.ensemble import RandomForestRegressor
+#from sklearn.ensemble import RandomForestRegressor
 # Instantiate model with 1000 decision trees
 rf = RandomForestRegressor(n_estimators = 1000, random_state = random_seed)
 # Train the model on training data
@@ -402,7 +407,7 @@ y_pred_train_rf.dtype #float32, need to convert to match data type of input rast
 plt.hist(y_pred_test_rf)
 
 
-from sklearn import svm
+#from sklearn import svm
 #X = [[0, 0], [2, 2]]
 #y = [0.5, 2.5]
 reg_svr = svm.SVR(C=100,kernel='rbf',gamma=0.1,epsilon=0.1)
@@ -411,10 +416,7 @@ reg_svr.fit(X_train,y_train)
 #    gamma='auto_deprecated', kernel='rbf', max_iter=-1, shrinking=True,
 #    tol=0.001, verbose=False)
 
-from sklearn.neural_network import MLPRegressor
-
-#x = np.arange(0.0, 1, 0.01).reshape(-1, 1)
-#y = np.sin(2 * np.pi * x).ravel()
+#from sklearn.neural_network import MLPRegressor
 
 #reg = MLPRegressor(hidden_layer_sizes=(10,),  activation='relu', solver='adam',    alpha=0.001,batch_size='auto',
 #               learning_rate='constant', learning_rate_init=0.01, power_t=0.5, max_iter=1000, shuffle=True,
@@ -467,8 +469,6 @@ print('reg intercept',regr.intercept_)
 rast_in = (os.path.join(in_dir,infile_lst_month1))
 #rast_in = output_file
 
-#debugusing pdb
-import pdb
 
 dtype_val = None
 out_filename = "results_linear_regression.tif"
@@ -528,8 +528,9 @@ r_mlp = rasterio.open(mlp_filename)
 
 plot.show(r_mlp)
 plot.show(r_mlp,clim=(0,20))
-plot.show(r_mlp,clim=(3,12))
+plot.show(r_mlp,clim=(6,7)) #need to retrain!!!
 
+array = r_mlp.read()
 array.min()
 array.max()
 
@@ -538,6 +539,10 @@ plt.hist(array.ravel())
 plt.hist(array.ravel(),
          bins=256,
          range=(0,20))
+
+plt.hist(array.ravel(),
+         bins=256,
+         range=(6,7))
 
 ############################# END OF SCRIPT ###################################
 
