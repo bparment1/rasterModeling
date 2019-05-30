@@ -7,6 +7,6 @@ r_out = rasterApply(fun, args, raster_in)
 
 where mod is a general model object and raster_variables a rasterio or file name referring to a raster image.
 
-In contrast to reading a full image band in memory, the processing is done by chunk using python generator (via rasterio image chunk) and should be able to handle raster of very large size.
+In contrast to reading a full image band in memory, the processing is done by chunk using python generator (via rasterio image chunk) and should be able to handle rasters of very large size.
 
-The goal is to fill gaps to existing raster package (rasterio, rasterstats and georasters). The focus is on modeling, operations and efficient for large raster (multicore processing to be added).
+The goal is to fill gaps to existing raster packages (rasterio, rasterstats and georasters). The focus is on modeling, operations and efficient processing for large rasters (multicore processing to be added).
